@@ -73,13 +73,6 @@ unsigned long long des_random_key()
 {
 	_DES_cblock des_key;
 	DES_random_key(&des_key.des_block);
-	for (int i = 0; i < DES_KEY_SZ / 2; i++)
-	{
-		unsigned char temp = des_key.des_block[i];
-		des_key.des_block[i] = des_key.des_block[DES_KEY_SZ - 1 - i];
-		des_key.des_block[DES_KEY_SZ - 1 - i] = temp;
-	}
-	
 	return des_key.des_ull;
 }
 
