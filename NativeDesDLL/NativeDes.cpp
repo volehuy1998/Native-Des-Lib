@@ -83,7 +83,7 @@ unsigned long long des_random_key()
 	return des_key.des_ull;
 }
 
-int des_ecb_with_str_key(unsigned char* input, int length, const char* str_key, unsigned char* output, int des_operate_mode)
+int des_ecb_with_str_key(unsigned char* input, const char* str_key, unsigned char* output, int des_operate_mode)
 {
 	DES_cblock des_key;
 	DES_key_schedule des_key_schedule;
@@ -100,7 +100,7 @@ int des_ecb_with_str_key(unsigned char* input, int length, const char* str_key, 
 	return 0;
 }
 
-int des_ecb(unsigned char* input, int length, unsigned long long key_ll, unsigned char* output, int des_operate_mode)
+int des_ecb(unsigned char* input, unsigned long long key_ll, unsigned char* output, int des_operate_mode)
 {
 	_DES_cblock _des_key;
 	_des_key.des_ull = key_ll;

@@ -22,12 +22,12 @@ extern "C" DESLIBRARY_API unsigned long long des_random_key();
 /*
 	Encrypt/decrypt with key type DES_cblock
  */
-extern "C" DESLIBRARY_API int des_ecb(unsigned char* input, int length, unsigned long long des_key, unsigned char* output, int des_operate_mode);
+extern "C" DESLIBRARY_API int des_ecb(unsigned char* input, unsigned long long des_key, unsigned char* output, int des_operate_mode);
 
 /*
 	Encrypt/decrypt with key which as human message will be converted to key type DES_cbblock
  */
-extern "C" DESLIBRARY_API int des_ecb_with_str_key(unsigned char* input, int length, const char* str_key, unsigned char* output, int des_operate_mode);
+extern "C" DESLIBRARY_API int des_ecb_with_str_key(unsigned char* input, const char* str_key, unsigned char* output, int des_operate_mode);
 
 /*
 	Encrypt/decrypt with random key type DES_cblock
