@@ -2,6 +2,8 @@
 
 #include "NativeDes.h"
 
+static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_key, unsigned char* output, int* output_len, int des_operate_mode);
+
 //void DES_CBC()
 //{
 //	DES_cblock key;// = { 0x29, 0xab, 0x9d, 0x18, 0xb2, 0x44, 0x9e, 0x31 };
@@ -76,7 +78,7 @@ unsigned long long des_random_key()
 	return des_key.des_ull;
 }
 
-int des_ecb_with_str_key(unsigned char* input, const char* str_key, unsigned char* output, int des_operate_mode)
+int des_ecb_with_str_key(unsigned char* input, int input_len, const char* str_key, unsigned char* output, int* output_len, int des_operate_mode)
 {
 	DES_cblock des_key;
 	DES_key_schedule des_key_schedule;
@@ -88,13 +90,16 @@ int des_ecb_with_str_key(unsigned char* input, const char* str_key, unsigned cha
 	}
 
 	DES_set_key_unchecked((const_DES_cblock*)&des_key, &des_key_schedule);
-	DES_ecb_encrypt((DES_cblock*)input, (DES_cblock*)output, &des_key_schedule, des_operate_mode);
+
+	int ret = des_ecb_standard(input, input_len, des_key, output, output_len, des_operate_mode);
 
 	return 0;
 }
 
-int des_ecb(unsigned char* input, unsigned long long key_ll, unsigned char* output, int des_operate_mode)
+int des_ecb(unsigned char* input, int input_len, unsigned long long key_ll, unsigned char* output, int* output_len, int des_operate_mode)
 {
+	int ret = 0;
+	int remain_len = 0;
 	_DES_cblock _des_key;
 	_des_key.des_ull = key_ll;
 	DES_cblock des_key;
@@ -106,7 +111,48 @@ int des_ecb(unsigned char* input, unsigned long long key_ll, unsigned char* outp
 		return check;
 	}
 
-	DES_ecb_encrypt((DES_cblock*)input, (DES_cblock*)output, &des_key_schedule, des_operate_mode);
+	ret = des_ecb_standard(input, input_len, des_key, output, output_len, des_operate_mode);
 
-	return 0;
+	return ret;
+}
+
+static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_key, unsigned char* output, int* output_len, int des_operate_mode)
+{
+	int ret = 0;
+	int remain_len = 0;
+
+
+	do
+	{
+		EVP_CIPHER_CTX* ctx;
+		ctx = EVP_CIPHER_CTX_new();
+		ret = EVP_CipherInit_ex(ctx, EVP_des_ecb(), NULL, NULL, NULL, des_operate_mode);
+		if (ret != 1)
+		{
+			break;
+		}
+
+		ret = EVP_CipherInit_ex(ctx, NULL, NULL, des_key, NULL, des_operate_mode);
+		if (ret != 1)
+		{
+			break;
+		}
+
+		ret = EVP_CipherUpdate(ctx, output, output_len, input, input_len);
+		if (ret != 1)
+		{
+			break;
+		}
+
+		ret = EVP_CipherFinal_ex(ctx, output + *output_len, &remain_len);
+		if (ret != 1)
+		{
+			break;
+		}
+
+		*output_len = *output_len + remain_len;
+		EVP_CIPHER_CTX_free(ctx);
+	} while (false);
+
+	return ret;
 }

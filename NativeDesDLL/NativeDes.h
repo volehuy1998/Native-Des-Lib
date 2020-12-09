@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <openssl/des.h>
 #include <openssl/crypto.h>
+#include <openssl/evp.h>
 
 #ifdef DESLIBRARY_EXPORTS
 #define DESLIBRARY_API __declspec(dllexport)
@@ -22,9 +23,9 @@ extern "C" DESLIBRARY_API unsigned long long des_random_key();
 /*
 	Encrypt/decrypt with key type DES_cblock
  */
-extern "C" DESLIBRARY_API int des_ecb(unsigned char* input, unsigned long long des_key, unsigned char* output, int des_operate_mode);
+extern "C" DESLIBRARY_API int des_ecb(unsigned char* input, int input_len, unsigned long long des_key, unsigned char* output, int* output_len, int des_operate_mode);
 
 /*
 	Encrypt/decrypt with key which as human message will be converted to key type DES_cbblock
  */
-extern "C" DESLIBRARY_API int des_ecb_with_str_key(unsigned char* input, const char* str_key, unsigned char* output, int des_operate_mode);
+extern "C" DESLIBRARY_API int des_ecb_with_str_key(unsigned char* input, int input_len, const char* str_key, unsigned char* output, int* output_len, int des_operate_mode);
