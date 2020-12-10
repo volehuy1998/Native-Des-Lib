@@ -2,7 +2,7 @@
 
 #include "NativeDes.h"
 
-static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_key, unsigned char* output, int* output_len, int des_operate_mode);
+static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_key, unsigned char* output, int* output_len, int des_operate_mode, unsigned long* error);
 
 //void DES_CBC()
 //{
@@ -71,6 +71,15 @@ union _DES_cblock
 	unsigned long long des_ull;
 };
 
+int des_check_key(unsigned long long des_key_ull)
+{
+	_DES_cblock _desk_key;
+	DES_key_schedule des_key_schedule;
+
+	_desk_key.des_ull = des_key_ull;
+	return DES_set_key_checked((const_DES_cblock*)_desk_key.des_block, &des_key_schedule);
+}
+
 unsigned long long des_random_key()
 {
 	_DES_cblock des_key;
@@ -78,7 +87,7 @@ unsigned long long des_random_key()
 	return des_key.des_ull;
 }
 
-int des_ecb_with_str_key(unsigned char* input, int input_len, const char* str_key, unsigned char* output, int* output_len, int des_operate_mode)
+int des_ecb_with_str_key(unsigned char* input, int input_len, const char* str_key, unsigned char* output, int* output_len, int des_operate_mode, unsigned long* error)
 {
 	DES_cblock des_key;
 	DES_key_schedule des_key_schedule;
@@ -86,17 +95,18 @@ int des_ecb_with_str_key(unsigned char* input, int input_len, const char* str_ke
 	DES_string_to_key((const char *)str_key, &des_key);
 	if (0 != DES_is_weak_key((const_DES_cblock *)&des_key))
 	{
+		*error = ERR_get_error();
 		return -1;
 	}
 
 	DES_set_key_unchecked((const_DES_cblock*)&des_key, &des_key_schedule);
 
-	int ret = des_ecb_standard(input, input_len, des_key, output, output_len, des_operate_mode);
+	int ret = des_ecb_standard(input, input_len, des_key, output, output_len, des_operate_mode, error);
 
 	return 0;
 }
 
-int des_ecb(unsigned char* input, int input_len, unsigned long long key_ll, unsigned char* output, int* output_len, int des_operate_mode)
+int des_ecb(unsigned char* input, int input_len, unsigned long long key_ll, unsigned char* output, int* output_len, int des_operate_mode, unsigned long* error)
 {
 	int ret = 0;
 	int remain_len = 0;
@@ -104,19 +114,12 @@ int des_ecb(unsigned char* input, int input_len, unsigned long long key_ll, unsi
 	_des_key.des_ull = key_ll;
 	DES_cblock des_key;
 	memcpy_s(des_key, DES_KEY_SZ, _des_key.des_block, DES_KEY_SZ);
-	DES_key_schedule des_key_schedule;
-	int check = DES_set_key_checked((const_DES_cblock*)&des_key, &des_key_schedule);
-	if (0 != check)
-	{
-		return check;
-	}
-
-	ret = des_ecb_standard(input, input_len, des_key, output, output_len, des_operate_mode);
+	ret = des_ecb_standard(input, input_len, des_key, output, output_len, des_operate_mode, error);
 
 	return ret;
 }
 
-static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_key, unsigned char* output, int* output_len, int des_operate_mode)
+static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_key, unsigned char* output, int* output_len, int des_operate_mode, unsigned long* error)
 {
 	int ret = 0;
 	int remain_len = 0;
@@ -128,30 +131,35 @@ static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_
 		ctx = EVP_CIPHER_CTX_new();
 		if (ctx == NULL)
 		{
+			*error = ERR_get_error();
 			break;
 		}
 
 		ret = EVP_CipherInit_ex(ctx, EVP_des_ecb(), NULL, NULL, NULL, des_operate_mode);
 		if (ret != 1)
 		{
+			*error = ERR_get_error();
 			break;
 		}
 
 		ret = EVP_CipherInit_ex(ctx, NULL, NULL, des_key, NULL, des_operate_mode);
 		if (ret != 1)
 		{
+			*error = ERR_get_error();
 			break;
 		}
 
 		ret = EVP_CipherUpdate(ctx, output, output_len, input, input_len);
 		if (ret != 1)
 		{
+			*error = ERR_get_error();
 			break;
 		}
 
 		ret = EVP_CipherFinal_ex(ctx, output + *output_len, &remain_len);
 		if (ret != 1)
 		{
+			*error = ERR_get_error();
 			break;
 		}
 
