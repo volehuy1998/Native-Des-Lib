@@ -120,12 +120,17 @@ static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_
 {
 	int ret = 0;
 	int remain_len = 0;
-
+	EVP_CIPHER_CTX* ctx = NULL;
 
 	do
 	{
-		EVP_CIPHER_CTX* ctx;
+		
 		ctx = EVP_CIPHER_CTX_new();
+		if (ctx == NULL)
+		{
+			break;
+		}
+
 		ret = EVP_CipherInit_ex(ctx, EVP_des_ecb(), NULL, NULL, NULL, des_operate_mode);
 		if (ret != 1)
 		{
@@ -151,8 +156,12 @@ static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_
 		}
 
 		*output_len = *output_len + remain_len;
-		EVP_CIPHER_CTX_free(ctx);
 	} while (false);
+
+	if (ctx != NULL)
+	{
+		EVP_CIPHER_CTX_free(ctx);
+	}
 
 	return ret;
 }

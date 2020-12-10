@@ -5,6 +5,7 @@
 #include <openssl/des.h>
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
 
 #ifdef DESLIBRARY_EXPORTS
 #define DESLIBRARY_API __declspec(dllexport)
