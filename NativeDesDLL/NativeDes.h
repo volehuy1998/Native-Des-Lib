@@ -31,4 +31,7 @@ extern "C" DESLIBRARY_API int des_ecb(unsigned char* input, int input_len, unsig
  */
 extern "C" DESLIBRARY_API int des_ecb_with_str_key(unsigned char* input, int input_len, const char* str_key, unsigned char* output, int* output_len, int des_operate_mode, unsigned long* error);
 
+/*
+	Check key weak or parity bit
+*/
 extern "C" DESLIBRARY_API int des_check_key(DES_cblock des_key);
