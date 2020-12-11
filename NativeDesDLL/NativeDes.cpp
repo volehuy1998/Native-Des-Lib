@@ -2,7 +2,7 @@
 
 #include "NativeDes.h"
 
-static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_key, unsigned char* output, int* output_len, int des_operate_mode, unsigned long* error);
+static int perform_standard(unsigned char* input, int input_len, DES_cblock des_key, DES_cblock des_iv, unsigned char* output, int* output_len, int des_operate_mode, int crypto_category, int crypto_mode, unsigned long* error);
 
 //void DES_CBC()
 //{
@@ -65,12 +65,6 @@ static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_
 //	print_data("\n Decrypted", decrypted, sizeof(input));
 //}
 
-union _DES_cblock
-{
-	DES_cblock des_block;
-	unsigned long long des_ull;
-};
-
 int des_check_key(unsigned long long des_key_ull)
 {
 	_DES_cblock _desk_key;
@@ -101,29 +95,66 @@ int des_ecb_with_str_key(unsigned char* input, int input_len, const char* str_ke
 
 	DES_set_key_unchecked((const_DES_cblock*)&des_key, &des_key_schedule);
 
-	int ret = des_ecb_standard(input, input_len, des_key, output, output_len, des_operate_mode, error);
+	//int ret = des_ecb_standard(input, input_len, des_key, output, output_len, des_operate_mode, error);
 
 	return 0;
 }
 
-int des_ecb(unsigned char* input, int input_len, unsigned long long key_ll, unsigned char* output, int* output_len, int des_operate_mode, unsigned long* error)
+int perform(unsigned char* input, int input_len, unsigned long long key_ll, unsigned long long iv_ll, unsigned char* output, int* output_len, int operate_mode, 
+	int crypto_category, int crypto_mode, unsigned long* error)
 {
 	int ret = 0;
 	int remain_len = 0;
 	_DES_cblock _des_key;
-	_des_key.des_ull = key_ll;
+	_DES_cblock _des_iv;
 	DES_cblock des_key;
+	DES_cblock des_iv;
+
+	_des_key.des_ull = key_ll;
+	_des_iv.des_ull = iv_ll;
 	memcpy_s(des_key, DES_KEY_SZ, _des_key.des_block, DES_KEY_SZ);
-	ret = des_ecb_standard(input, input_len, des_key, output, output_len, des_operate_mode, error);
+	memcpy_s(des_iv, DES_KEY_SZ, _des_iv.des_block, DES_KEY_SZ);
+	ret = perform_standard(input, input_len, des_key, des_iv, output, output_len, operate_mode, crypto_category, crypto_mode, error);
 
 	return ret;
 }
 
-static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_key, unsigned char* output, int* output_len, int des_operate_mode, unsigned long* error)
+static int perform_standard(unsigned char* input, int input_len, DES_cblock des_key, DES_cblock des_iv, unsigned char* output, int* output_len, int operate_mode, int crypto_category, int crypto_mode, unsigned long* error)
 {
 	int ret = 0;
 	int remain_len = 0;
 	EVP_CIPHER_CTX* ctx = NULL;
+	EVP_CIPHER* cipher = NULL;
+
+	if (crypto_category == 1)
+	{
+		if (crypto_mode == 1)	   cipher = (EVP_CIPHER*)EVP_des_ecb();
+		else if (crypto_mode == 2) cipher = (EVP_CIPHER*)EVP_des_cbc();
+		else if (crypto_mode == 3) cipher = (EVP_CIPHER*)EVP_des_ofb();
+		else if (crypto_mode == 4) cipher = (EVP_CIPHER*)EVP_des_cfb();
+		else if (crypto_mode == 5) cipher = (EVP_CIPHER*)EVP_des_ede();
+	}
+	else if (crypto_category == 2)
+	{
+		if (crypto_mode == 1)	   cipher = (EVP_CIPHER*)EVP_aes_128_ecb();
+		else if (crypto_mode == 2) cipher = (EVP_CIPHER*)EVP_aes_128_cbc();
+		else if (crypto_mode == 3) cipher = (EVP_CIPHER*)EVP_aes_128_ofb();
+		else if (crypto_mode == 4) cipher = (EVP_CIPHER*)EVP_aes_128_cfb();
+	}
+	else if (crypto_category == 3)
+	{
+		if (crypto_mode == 1)	   cipher = (EVP_CIPHER*)EVP_aes_192_ecb();
+		else if (crypto_mode == 2) cipher = (EVP_CIPHER*)EVP_aes_192_cbc();
+		else if (crypto_mode == 3) cipher = (EVP_CIPHER*)EVP_aes_192_ofb();
+		else if (crypto_mode == 4) cipher = (EVP_CIPHER*)EVP_aes_192_cfb();
+	}
+	else if (crypto_category == 4)
+	{
+		if (crypto_mode == 1)	   cipher = (EVP_CIPHER*)EVP_rc2_ecb();
+		else if (crypto_mode == 2) cipher = (EVP_CIPHER*)EVP_rc2_cbc();
+		else if (crypto_mode == 3) cipher = (EVP_CIPHER*)EVP_rc2_ofb();
+		else if (crypto_mode == 4) cipher = (EVP_CIPHER*)EVP_rc2_cfb();
+	}
 
 	do
 	{
@@ -135,14 +166,7 @@ static int des_ecb_standard(unsigned char* input, int input_len, DES_cblock des_
 			break;
 		}
 
-		ret = EVP_CipherInit_ex(ctx, EVP_des_ecb(), NULL, NULL, NULL, des_operate_mode);
-		if (ret != 1)
-		{
-			*error = ERR_get_error();
-			break;
-		}
-
-		ret = EVP_CipherInit_ex(ctx, NULL, NULL, des_key, NULL, des_operate_mode);
+		ret = EVP_CipherInit_ex(ctx, cipher, NULL, des_key, des_iv, operate_mode);
 		if (ret != 1)
 		{
 			*error = ERR_get_error();
